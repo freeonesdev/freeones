@@ -7,6 +7,6 @@ setup(
     author='Tamas Miklos Kovacs',
     author_email='no@no.no',
     description='Scrape Freeones.com bios and galleries',
-    packages=find_packages(),    
+    packages=['freeones'],
     install_requires=['beautifulsoup4','lxml','pyyaml','requests'],
 )
