@@ -1,34 +1,34 @@
 from scrapers.scraper import Video
+from datetime import datetime
 from bs4 import BeautifulSoup
 from os import path, makedirs
 import urllib.request
 import requests
+import logging
 import json
 
 
 class FreeOnesVideo(Video):
-    base_url = ""
+    base_url = "https://www.freeones.com"
     slug = ""
     target = ""
 
-    def __init__(self, write_log):
-        super().__init__(write_log)
-        self.base_url = "https://www.freeones.com"
+    def __init__(self, slug=None, title="", target=None):
+        super().__init__()
 
-    def init(self, slug, title, target):
         self.slug = slug
         self.target = target
         self.url = f"{self.base_url}{slug}"
         self.metadata = {
             'url': self.url,
             'title': title,
-            'upload_date': "",
+            'source': None,
+            'upload_date': None,
             'performers': []
         }
 
     def load(self):
-        if self.log:
-            print("Processing video")
+        logging.debug("Processing video")
         page = requests.get(self.url)
         soup = BeautifulSoup(page.content, "html.parser")
 
@@ -37,7 +37,7 @@ class FreeOnesVideo(Video):
         if date_box:
             date = date_box.text
             if date:
-                self.metadata['upload_date'] = date
+                self.metadata['upload_date'] = datetime.strptime(date, "on %B %d, %Y")
         cast_boxes = soup.findAll("div", class_="cast")
         if cast_boxes:
             for box in cast_boxes:
@@ -51,6 +51,7 @@ class FreeOnesVideo(Video):
             data = json.loads(s.text)
             if data['@type'] == "VideoObject":
                 self.source_url = data["contentUrl"]
+                self.metadata['source'] = self.source_url
         self.loaded = True
 
     def meta(self):
@@ -79,8 +80,6 @@ class FreeOnesVideo(Video):
         if not path.exists(target_file):
             try:
                 urllib.request.urlretrieve(self.source_url, target_file)
-                if self.log:
-                    print("Video downloaded")
+                logging.info(f"Video downloaded: {self.source_url} -> {target_file}")
             except:
-                if self.log:
-                    print(f"Download failed for {self.source_url}")
+                logging.error(f"Download failed for {self.source_url}")

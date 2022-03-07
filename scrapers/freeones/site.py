@@ -1,13 +1,15 @@
 from scrapers.scraper import Scraper
 from scrapers.freeones.album import FreeOnesAlbum
 from scrapers.freeones.videos import FreeOnesVideo
-import requests
-import json
-import yaml
-import re
+from datetime import datetime
 from lxml import etree
 from bs4 import BeautifulSoup
 from os import makedirs
+import requests
+import logging
+import json
+import yaml
+import re
 
 
 class FreeOnes(Scraper):
@@ -15,31 +17,15 @@ class FreeOnes(Scraper):
     out_path = f"./babes"
     album_page = 0
     videos_page = 0
-    months = {
-        'jan': 1,
-        'feb': 2,
-        'mar': 3,
-        'apr': 4,
-        'may': 5,
-        'jun': 6,
-        'jul': 7,
-        'aug': 8,
-        'sep': 9,
-        'oct': 10,
-        'nov': 11,
-        'dec': 12
-    }
 
-    def __init__(self, write_log):
-        super().__init__(write_log)
+    def __init__(self, write_bio=False, write_albums=False, write_videos=False):
+        super().__init__(write_bio, write_albums, write_videos)
 
         self.babe_path = self.out_path
         self.album_list = []
-        self.video_list=[]
-        self.log = write_log
+        self.video_list = []
 
-        if self.log:
-            print(f"FreeOnes scraper")
+        logging.info(f"FreeOnes scraper")
 
     def list_targets(self, page=1):
         babes = []
@@ -68,9 +54,9 @@ class FreeOnes(Scraper):
                 structure = yaml.load(file, Loader=yaml.FullLoader)
             bio_paths = structure['xPathScrapers']['performerScraper']['performer']
         except IOError as ex:
-            if self.log:
-                print("Structure YAML file not found")
-            return
+            logging.error("Structure YAML file not found")
+            self.biography = None
+            return None
 
         url = f"{self.base_url}/{self.target}/bio"
         page = requests.get(url)
@@ -141,12 +127,11 @@ class FreeOnes(Scraper):
 
                     # Parse date process
                     elif 'parseDate' in process.keys():
-                        match = re.search('([a-zA-Z]+) ([0-9]{1,2}), ([0-9]{4})', value)
-                        if match:
-                            year = int(match.group(3))
-                            month = self.months[match.group(1).lower()[0:3]]
-                            day = int(match.group(2))
-                            value = f"{year:04d}-{month:02d}-{day:02d}"
+                        date_input = value.strip()
+                        if date_input:
+                            value = datetime.strptime(date_input, '%B %d, %Y')
+                        else:
+                            value = None
 
             if value:
                 self.biography[key.lower()] = value
@@ -154,15 +139,19 @@ class FreeOnes(Scraper):
         # Write biography to JSON file
         if self.options['write_bio']:
             makedirs(self.babe_path, exist_ok=True)
-            json_path = f"{self.babe_path}/bio.json"
+            json_path = f"{self.babe_path}bio.json"
             try:
+                bio_output = {}
+                for key, value in self.biography.items():
+                    if isinstance(value, datetime):
+                        bio_output[key] = value.strftime('%Y-%m-%d %H:%M:%S')
+                    else:
+                        bio_output[key] = value
                 with open(json_path, 'w') as outfile:
-                    json.dump(self.biography, outfile)
-                if self.log:
-                    print("Biography file written")
+                    json.dump(bio_output, outfile)
+                logging.info(f"Biography file written: {json_path}")
             except IOError:
-                if self.log:
-                    print("Failed to write biography file")
+                logging.warning(f"Failed to write biography file: {json_path}")
 
         return self.biography
 
@@ -174,8 +163,7 @@ class FreeOnes(Scraper):
         # No more album in active page, get next one
         if len(self.album_list) < 1:
             self.album_page += 1
-            if self.log:
-                print(f"Fetching album page {self.album_page}")
+            logging.info(f"Fetching album page {self.album_page}")
             self.album_list = []
             url = f"{self.base_url}/{self.target}/photos?s=subject-latest&l=12&p={self.album_page}"
             page = requests.get(url)
@@ -184,11 +172,9 @@ class FreeOnes(Scraper):
             for link in album_links:
                 album_slug = link['href']
                 album_title = link.find("p", class_="title-clamp").getText().strip()
-                album = FreeOnesAlbum(self.log)
-                album.init(album_slug, album_title, self.target)
+                album = FreeOnesAlbum(album_slug, album_title, self.target)
                 self.album_list.append(album)
-            if self.log:
-                print(f"Found {len(self.album_list)} albums")
+            logging.debug(f"Found {len(self.album_list)} albums")
 
             # Last page of albums is empty, no more albums to fetch
             if len(self.album_list) < 1:
@@ -211,8 +197,7 @@ class FreeOnes(Scraper):
         # No more pictures in active album, go for next album page
         if len(self.video_list) < 1:
             self.videos_page += 1
-            if self.log:
-                print(f"Fetching videos page {self.videos_page}")
+            logging.info(f"Fetching videos page {self.videos_page}")
             self.video_list = []
             url = f"{self.base_url}/{self.target}/videos?s=subject-latest&l=12&p={self.videos_page}"
             page = requests.get(url)
@@ -221,11 +206,9 @@ class FreeOnes(Scraper):
             for link in video_links:
                 video_slug = link['href']
                 video_title = link.find("p", class_="title-clamp").getText().strip()
-                video = FreeOnesVideo(self.log)
-                video.init(video_slug, video_title, self.target)
+                video = FreeOnesVideo(video_slug, video_title, self.target)
                 self.video_list.append(video)
-            if self.log:
-                print(f"Found {len(self.video_list)} videos")
+            logging.debug(f"Found {len(self.video_list)} videos")
 
             # Last page of videos is empty, no more videos to fetch
             if len(self.video_list) < 1:

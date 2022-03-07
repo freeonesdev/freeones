@@ -1,11 +1,12 @@
 import argparse
+import logging
 from scrapers.freeones.site import FreeOnes
 
+
 if __name__ == '__main__':
-    write_bio = False
-    write_pictures = False
-    write_videos = False
-    write_log = False
+    write_bio = True
+    write_pictures = True
+    write_videos = True
 
     # Process command line arguments
     parser = argparse.ArgumentParser()
@@ -14,59 +15,56 @@ if __name__ == '__main__':
     parser.add_argument("--no-bio", help="Don't fetch biography", action="store_true")
     parser.add_argument("--no-album", help="Don't download pictures", action="store_true")
     parser.add_argument("--no-video", help="Don't download videos", action="store_true")
-    parser.add_argument("--log", help="Print log messages", action="store_true")
+    parser.add_argument("--log", help="Set log level (error|warning|info|debug)")
     args = parser.parse_args()
 
-    if args.log:
-        write_log = True
+    if args.log is not None:
+        numeric_level = getattr(logging, args.log.upper(), None)
+        if not isinstance(numeric_level, int):
+            raise ValueError(f"Invalid log level: {args.log}")
+        logging.basicConfig(level=numeric_level)
 
     if args.target:
-        if not args.no_bio:
-            write_bio = True
-        if not args.no_album:
-            write_pictures = True
-        if not args.no_video:
-            write_videos = True
+        write_bio = not args.no_bio
+        write_pictures = not args.no_album
+        write_videos = not args.no_video
 
         if args.site == "freeones":
             # Scrape freeones.com, write logs
-            f = FreeOnes(write_log)
+            f = FreeOnes(write_bio, write_pictures, write_videos)
 
             # Select babe
             f.select_target(args.target)
 
             # Biography
-            print("Biography")
-            f.write_bio(write_bio)
+
             bio = f.bio()
 
             # Photo albums
-            print("Albums")
-            f.write_albums(write_pictures)
+            logging.info("Albums")
             while (a := f.next_album()) is not None:
-                print(a.meta())
+                logging.debug(a.meta())
                 ps = 0
                 while (p := a.next_photo(download=True)) is not None:
                     ps += 1
-                print(f"Album had {ps} photos")
+                logging.info(f"Album had {ps} photos")
 
             # Videos
-            print("Videos")
-            f.write_videos(write_videos)
+            logging.info("Videos")
             while (v := f.next_video()) is not None:
-                print(v.meta())
+                logging.debug(v.meta())
                 v.download()
 
         elif args.site == "warashi":
-            print("Not implemented yet")
+            logging.warning("Not implemented yet")
         else:
-            print(f"Unknown site: {args.site}")
+            logging.warning(f"Unknown site: {args.site}")
 
-    elif write_log:
-        print("No target set, list 1st page")
+    else:
+        logging.info("No target set, list 1st page")
         # Scrape freeones.com, write logs
-        f = FreeOnes(write_log)
+        f = FreeOnes()
 
         # List first page of target listing
         babes = f.list_targets()
-        print(f"Found {len(babes)} babes")
+        logging.info(f"Found {len(babes)} babes")

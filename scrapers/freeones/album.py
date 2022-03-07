@@ -2,33 +2,31 @@ from scrapers.scraper import PhotoAlbum
 from bs4 import BeautifulSoup
 from os import path, makedirs
 from urllib.parse import urlparse
+from datetime import datetime
 import urllib.request
 import requests
+import logging
 
 
 class FreeOnesAlbum(PhotoAlbum):
-    base_url = ""
+    base_url = "https://www.freeones.com"
     slug = ""
     target = ""
 
-    def __init__(self, write_log):
-        super().__init__(write_log)
-        self.base_url = "https://www.freeones.com"
+    def __init__(self, slug=None, title="", target=None):
+        super().__init__()
 
-    def init(self, slug, title, target):
         self.slug = slug
         self.target = target
         self.url = f"{self.base_url}{slug}"
         self.metadata = {
             'url': self.url,
             'title': title,
-            'upload_date': "",
+            'upload_date': None,
             'performers': []
         }
 
     def load(self):
-        if self.log:
-            print("Processing album")
         page = requests.get(self.url)
         soup = BeautifulSoup(page.content, "html.parser")
 
@@ -37,7 +35,7 @@ class FreeOnesAlbum(PhotoAlbum):
         if date_box:
             date = date_box.text
             if date:
-                self.metadata['upload_date'] = date
+                self.metadata['upload_date'] = datetime.strptime(date, "on %B %d, %Y")
         cast_boxes = soup.findAll("div", class_="cast")
         if cast_boxes:
             for box in cast_boxes:
@@ -51,8 +49,7 @@ class FreeOnesAlbum(PhotoAlbum):
         for link in picture_links:
             self.pictures.append(link['href'])
         self.loaded = True
-        if self.log:
-            print(f" done, found {len(self.pictures)} pictures")
+        logging.info(f"Album processed, found {len(self.pictures)} pictures")
 
     def meta(self):
         # Load metadata if needed
@@ -71,10 +68,8 @@ class FreeOnesAlbum(PhotoAlbum):
             try:
                 urllib.request.urlretrieve(picture_url, target_file)
             except:
-                if self.log:
-                    print(f"Download failed for {picture_url}")
-        if self.log:
-            print("Picture downloaded")
+                logging.error(f"Download failed for {picture_url}")
+        logging.debug(f"Picture downloaded ({picture_url})")
 
     def next_photo(self, data=False, download=False):
         # Load pictures if needed

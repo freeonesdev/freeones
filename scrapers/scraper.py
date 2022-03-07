@@ -4,9 +4,6 @@ class PhotoAlbum:
     pictures = []
     loaded = False
 
-    def __init__(self, write_log):
-        self.log = write_log
-
     def meta(self):
         pass
 
@@ -20,9 +17,6 @@ class Video:
     metadata = None
     loaded = False
 
-    def __init__(self, write_log):
-        self.log = write_log
-
     def meta(self):
         pass
 
@@ -32,16 +26,18 @@ class Video:
 
 class Scraper:
     options = {
-        "write_bio": True,
-        "write_albums": True,
-        "write_videos": True
+        "write_bio": False,
+        "write_albums": False,
+        "write_videos": False
     }
     base_url = ""
     target = None
     biography = None
 
-    def __init__(self, write_log):
-        self.log = write_log
+    def __init__(self, write_bio=False, write_albums=False, write_videos=False):
+        self.options['write_bio'] = write_bio
+        self.options['write_albums'] = write_albums
+        self.options['write_videos'] = write_videos
 
     def list_targets(self, page=1):
         pass
@@ -57,12 +53,3 @@ class Scraper:
 
     def next_video(self):
         pass
-
-    def write_bio(self, write):
-        self.options['write_bio'] = write
-
-    def write_albums(self, write):
-        self.options['write_albums'] = write
-
-    def write_videos(self, write):
-        self.options['write_videos'] = write
