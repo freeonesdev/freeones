@@ -136,6 +136,21 @@ class FreeOnes(Scraper):
             if value:
                 self.biography[key.lower()] = value
 
+        # Convert career dates to datetime objects
+        if self.biography['careerlength']:
+            career_parts = self.biography['careerlength'].split('-')
+            del self.biography['careerlength']
+            self.biography['careerStart'] = None
+            self.biography['careerEnd'] = None
+            if career_parts[0]:
+                year = re.search(r'\d+|$', career_parts[0]).group()
+                if year:
+                    self.biography['careerStart'] = datetime.strptime(f"{year}-01-01", '%Y-%m-%d')
+            if career_parts[1]:
+                year = re.search(r'\d+|$', career_parts[1]).group()
+                if year:
+                    self.biography['careerEnd'] = datetime.strptime(f"{year}-01-01", '%Y-%m-%d')
+
         # Write biography to JSON file
         if self.options['write_bio']:
             makedirs(self.babe_path, exist_ok=True)
