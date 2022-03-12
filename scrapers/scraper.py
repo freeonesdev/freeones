@@ -27,17 +27,16 @@ class Video:
 class Scraper:
     options = {
         "write_bio": False,
-        "write_albums": False,
-        "write_videos": False
+        "write_media": False,
+        "list_albums": False,
+        "list_videos": False
     }
     base_url = ""
     target = None
     biography = None
 
-    def __init__(self, write_bio=False, write_albums=False, write_videos=False):
+    def __init__(self, write_bio=False):
         self.options['write_bio'] = write_bio
-        self.options['write_albums'] = write_albums
-        self.options['write_videos'] = write_videos
 
     def list_targets(self, page=1):
         pass

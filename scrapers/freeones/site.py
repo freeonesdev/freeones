@@ -18,8 +18,8 @@ class FreeOnes(Scraper):
     album_page = 0
     videos_page = 0
 
-    def __init__(self, write_bio=False, write_albums=False, write_videos=False):
-        super().__init__(write_bio, write_albums, write_videos)
+    def __init__(self, write_bio=False):
+        super().__init__(write_bio)
 
         self.babe_path = self.out_path
         self.album_list = []
