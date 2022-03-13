@@ -89,6 +89,7 @@ class FreeOnesVideo(Video):
             if not path.exists(json_file):
                 with open(json_file,'w') as fh:
                     fh.write(json.dumps(self.metadata,default=self.json_serial))
+                    fh.write("\n")
                 logging.debug(f"Metadata downloaded ({json_file})")
   
         if download and not path.exists(target_file):

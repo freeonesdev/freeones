@@ -77,6 +77,7 @@ class FreeOnesAlbum(PhotoAlbum):
             if not path.exists(json_path):
                 with open(json_path,'w') as fh:
                     fh.write(json.dumps(self.metadata,default=self.json_serial))
+                    fh.write("\n")
                 logging.debug(f"Metadata downloaded ({json_path})")
         if download:
             makedirs(album_path, exist_ok=True)
