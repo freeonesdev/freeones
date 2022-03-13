@@ -137,7 +137,7 @@ class FreeOnes(Scraper):
                 self.biography[key.lower()] = value
 
         # Convert career dates to datetime objects
-        if self.biography['careerlength']:
+        if self.biography is not None and 'careerlength' in self.biography.keys():
             career_parts = self.biography['careerlength'].split('-')
             del self.biography['careerlength']
             self.biography['careerStart'] = None
