@@ -1,12 +1,12 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
-    name='freeones',
+    name='scrapers',
     version='1.0.0',
     url='https://github.com/fwh-ltd/freeones.git',
-    author='Tamas Miklos Kovacs',
+    author='Tamas Kovacs',
     author_email='no@no.no',
     description='Scrape Freeones.com bios and galleries',
-    packages=['freeones'],
-    install_requires=['beautifulsoup4','lxml','pyyaml','requests'],
+    packages=['scrapers'],
+    install_requires=['beautifulsoup4', 'lxml', 'pyyaml', 'requests'],
 )
