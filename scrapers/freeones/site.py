@@ -1,7 +1,7 @@
 from scrapers.scraper import Scraper
 from scrapers.freeones.album import FreeOnesAlbum
 from scrapers.freeones.videos import FreeOnesVideo
-from datetime import datetime
+from datetime import datetime, date
 from lxml import etree
 from bs4 import BeautifulSoup
 from os import makedirs
@@ -17,6 +17,12 @@ class FreeOnes(Scraper):
     out_path = f"./babes"
     album_page = 0
     videos_page = 0
+
+    def json_serial(self,obj):
+        """JSON serializer for objects not serializable by default json code"""
+        if isinstance(obj, (datetime, date)):
+            return obj.isoformat()
+        raise TypeError ("Type %s not serializable" % type(obj))
 
     def __init__(self, write_bio=False):
         super().__init__(write_bio)

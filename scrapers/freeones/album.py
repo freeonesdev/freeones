@@ -2,13 +2,21 @@ from scrapers.scraper import PhotoAlbum
 from bs4 import BeautifulSoup
 from os import path, makedirs
 from urllib.parse import urlparse
-from datetime import datetime
+from datetime import datetime, date
 import urllib.request
 import requests
 import logging
+import json
 
 
 class FreeOnesAlbum(PhotoAlbum):
+    def json_serial(self,obj):
+        """JSON serializer for objects not serializable by default json code"""
+
+        if isinstance(obj, (datetime, date)):
+            return obj.isoformat()
+        raise TypeError ("Type %s not serializable" % type(obj))
+
     base_url = "https://www.freeones.com"
     slug = ""
     target = ""
@@ -58,20 +66,30 @@ class FreeOnesAlbum(PhotoAlbum):
 
         return self.metadata
 
-    def download(self, picture_url):
+    def download(self, picture_url, download=False, metadata=False):
         last_slug = self.slug.split('/')[-1]
+        base_path = f"./babes/{self.target}/photos"
         album_path = f"./babes/{self.target}/photos/{last_slug}"
-        makedirs(album_path, exist_ok=True)
-        parsed_url = urlparse(picture_url)
-        target_file = f"{album_path}/{path.basename(parsed_url.path)}"
-        if not path.exists(target_file):
-            try:
-                urllib.request.urlretrieve(picture_url, target_file)
-            except:
-                logging.error(f"Download failed for {picture_url}")
-        logging.debug(f"Picture downloaded ({picture_url})")
 
-    def next_photo(self, data=False, download=False):
+        if metadata:
+            makedirs(base_path, exist_ok=True)
+            json_path = album_path + '.json'
+            if not path.exists(json_path):
+                with open(json_path,'w') as fh:
+                    fh.write(json.dumps(self.metadata,default=self.json_serial))
+                logging.debug(f"Metadata downloaded ({json_path})")
+        if download:
+            makedirs(album_path, exist_ok=True)
+            parsed_url = urlparse(picture_url)
+            target_file = f"{album_path}/{path.basename(parsed_url.path)}"
+            if not path.exists(target_file):
+                try:
+                    urllib.request.urlretrieve(picture_url, target_file)
+                except:
+                    logging.error(f"Download failed for {picture_url}")
+            logging.debug(f"Picture downloaded ({picture_url})")
+
+    def next_photo(self, data=False, download=False, metadata=True):
         # Load pictures if needed
         if not self.loaded:
             self.load()
@@ -84,8 +102,8 @@ class FreeOnesAlbum(PhotoAlbum):
         picture_url = self.pictures.pop(0)
 
         # Download if requested
-        if download:
-            self.download(picture_url)
+        #if download:
+        self.download(picture_url, download=download, metadata=metadata)
 
         # Return next photo
         if data:

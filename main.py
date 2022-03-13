@@ -4,7 +4,7 @@ from scrapers.freeones.site import FreeOnes
 
 
 if __name__ == '__main__':
-    write_bio = True
+    write_metadata = True
     write_media = True
     list_pictures = True
     list_videos = True
@@ -13,7 +13,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("site", help="Site to scrape data from")
     parser.add_argument("--target", help="Target identifier (eg. URL slug) to retrieve info from")
-    parser.add_argument("--no-bio", help="Don't fetch biography", action="store_true")
+    parser.add_argument("--no-metadata", help="Don't fetch biography or album/video json", action="store_true")
     parser.add_argument("--no-album", help="Don't look for photo galleries", action="store_true")
     parser.add_argument("--no-video", help="Don't look for videos", action="store_true")
     parser.add_argument("--no-download", help="Don't download photos/videos", action="store_true")
@@ -31,14 +31,14 @@ if __name__ == '__main__':
         logging.getLogger().addHandler(fh)
 
     if args.target:
-        write_bio = not args.no_bio
+        write_metadata = not args.no_metadata
         write_media = not args.no_download
         list_pictures = not args.no_album
         list_videos = not args.no_video
 
         if args.site == "freeones":
             # Scrape freeones.com, write logs
-            f = FreeOnes(write_bio)
+            f = FreeOnes(write_metadata)
 
             # Select babe
             f.select_target(args.target)
@@ -53,7 +53,7 @@ if __name__ == '__main__':
                 while (a := f.next_album()) is not None:
                     logging.debug(a.meta())
                     ps = 0
-                    while (p := a.next_photo(download=write_media)) is not None:
+                    while (p := a.next_photo(download=write_media,metadata=write_metadata)) is not None:
                         ps += 1
                     logging.info(f"Album had {ps} photos")
 
@@ -62,8 +62,7 @@ if __name__ == '__main__':
                 logging.info("Videos")
                 while (v := f.next_video()) is not None:
                     logging.debug(v.meta())
-                    if write_media:
-                        v.download()
+                    v.download(download=write_media,metadata=write_metadata)
 
         elif args.site == "warashi":
             logging.warning("Not implemented yet")
