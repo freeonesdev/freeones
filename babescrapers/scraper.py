@@ -1,5 +1,5 @@
 class PhotoAlbum:
-    url = ""
+    url = ''
     metadata = None
     pictures = []
     loaded = False
@@ -12,7 +12,7 @@ class PhotoAlbum:
 
 
 class Video:
-    url = ""
+    url = ''
     source_url = None
     metadata = None
     loaded = False
@@ -26,12 +26,12 @@ class Video:
 
 class Scraper:
     options = {
-        "write_bio": False,
-        "write_media": False,
-        "list_albums": False,
-        "list_videos": False
+        'write_bio': False,
+        'write_media': False,
+        'list_albums': False,
+        'list_videos': False
     }
-    base_url = ""
+    base_url = ''
     target = None
     biography = None
 

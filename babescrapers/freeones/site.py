@@ -1,7 +1,7 @@
-from scrapers.scraper import Scraper
-from scrapers.freeones.album import FreeOnesAlbum
-from scrapers.freeones.videos import FreeOnesVideo
-from datetime import datetime, date
+from babescrapers.scraper import Scraper
+from babescrapers.freeones.album import FreeOnesAlbum
+from babescrapers.freeones.videos import FreeOnesVideo
+from datetime import datetime
 from lxml import etree
 from bs4 import BeautifulSoup
 from os import makedirs
@@ -13,16 +13,10 @@ import re
 
 
 class FreeOnes(Scraper):
-    base_url = "https://www.freeones.com"
-    out_path = f"./babes"
+    base_url = 'https://www.freeones.com'
+    out_path = './babes'
     album_page = 0
     videos_page = 0
-
-    def json_serial(self,obj):
-        """JSON serializer for objects not serializable by default json code"""
-        if isinstance(obj, (datetime, date)):
-            return obj.isoformat()
-        raise TypeError ("Type %s not serializable" % type(obj))
 
     def __init__(self, write_bio=False):
         super().__init__(write_bio)
@@ -31,16 +25,16 @@ class FreeOnes(Scraper):
         self.album_list = []
         self.video_list = []
 
-        logging.info(f"FreeOnes scraper")
+        logging.info('FreeOnes scraper')
 
     def list_targets(self, page=1):
         babes = []
         list_url = f"{self.base_url}/babes?s=rank.currentRank&o=asc&l=12&p={page}"
         page = requests.get(list_url)
-        soup = BeautifulSoup(page.content, "html.parser")
-        babes_boxes = soup.findAll("div", {'class': ['grid-item', 'teaser-subject']})
+        soup = BeautifulSoup(page.content, 'html.parser')
+        babes_boxes = soup.findAll('div', {'class': ['grid-item', 'teaser-subject']})
         for box in babes_boxes:
-            feed_link = box.find('a', class_="teaser__link")['href']
+            feed_link = box.find('a', class_='teaser__link').get('href')
             feed_parts = feed_link.split('/')
             babes.append(feed_parts[1])
 
@@ -60,13 +54,13 @@ class FreeOnes(Scraper):
                 structure = yaml.load(file, Loader=yaml.FullLoader)
             bio_paths = structure['xPathScrapers']['performerScraper']['performer']
         except IOError as ex:
-            logging.error("Structure YAML file not found")
+            logging.error('Structure YAML file not found')
             self.biography = None
             return None
 
         url = f"{self.base_url}/{self.target}/bio"
         page = requests.get(url)
-        soup = BeautifulSoup(page.content, "html.parser")
+        soup = BeautifulSoup(page.content, 'html.parser')
         dom = etree.HTML(str(soup))
 
         for key in bio_paths:
@@ -106,7 +100,7 @@ class FreeOnes(Scraper):
                     else:
                         value = value[0]
                 else:
-                    value = ""
+                    value = ''
             if hasattr(value, 'text'):
                 value = ''.join(t.strip() for t in value.itertext())
             else:
@@ -120,9 +114,9 @@ class FreeOnes(Scraper):
                     if 'replace' in process.keys():
                         replaces = process['replace']
                         for step in replaces:
-                            replace_with = ""
+                            replace_with = ''
                             if 'with' in step.keys():
-                                replace_with = str(step['with'] or "")
+                                replace_with = str(step['with'] or '')
                             value = re.sub(step['regex'], replace_with, value)
 
                     # Mapping process
@@ -135,7 +129,10 @@ class FreeOnes(Scraper):
                     elif 'parseDate' in process.keys():
                         date_input = value.strip()
                         if date_input:
-                            value = datetime.strptime(date_input, '%B %d, %Y')
+                            try:
+                                value = datetime.strptime(date_input, '%B %d, %Y')
+                            except ValueError as ex:
+                                logging.error(f"Invalid date ({value}): {ex}")
                         else:
                             value = None
 
@@ -188,11 +185,11 @@ class FreeOnes(Scraper):
             self.album_list = []
             url = f"{self.base_url}/{self.target}/photos?s=subject-latest&l=12&p={self.album_page}"
             page = requests.get(url)
-            soup = BeautifulSoup(page.content, "html.parser")
-            album_links = soup.find_all("a", class_="teaser__link")
+            soup = BeautifulSoup(page.content, 'html.parser')
+            album_links = soup.find_all('a', class_='teaser__link')
             for link in album_links:
-                album_slug = link['href']
-                album_title = link.find("p", class_="title-clamp").getText().strip()
+                album_slug = link.get('href')
+                album_title = link.find('p', class_='title-clamp').getText().strip()
                 album = FreeOnesAlbum(album_slug, album_title, self.target)
                 self.album_list.append(album)
             logging.debug(f"Found {len(self.album_list)} albums")
@@ -215,18 +212,18 @@ class FreeOnes(Scraper):
         if self.videos_page < 0:
             return None
 
-        # No more pictures in active album, go for next album page
+        # No more videos, go for next page
         if len(self.video_list) < 1:
             self.videos_page += 1
             logging.info(f"Fetching videos page {self.videos_page}")
             self.video_list = []
             url = f"{self.base_url}/{self.target}/videos?s=subject-latest&l=12&p={self.videos_page}"
             page = requests.get(url)
-            soup = BeautifulSoup(page.content, "html.parser")
-            video_links = soup.find_all("a", class_="teaser__link")
+            soup = BeautifulSoup(page.content, 'html.parser')
+            video_links = soup.find_all('a', class_='teaser__link')
             for link in video_links:
-                video_slug = link['href']
-                video_title = link.find("p", class_="title-clamp").getText().strip()
+                video_slug = link.get('href')
+                video_title = link.find('p', class_='title-clamp').getText().strip()
                 video = FreeOnesVideo(video_slug, video_title, self.target)
                 self.video_list.append(video)
             logging.debug(f"Found {len(self.video_list)} videos")

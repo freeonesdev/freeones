@@ -1,8 +1,9 @@
-from scrapers.scraper import PhotoAlbum
+from babescrapers.scraper import PhotoAlbum
+from babescrapers.utils import json_serial
 from bs4 import BeautifulSoup
 from os import path, makedirs
 from urllib.parse import urlparse
-from datetime import datetime, date
+from datetime import datetime
 import urllib.request
 import requests
 import logging
@@ -10,18 +11,11 @@ import json
 
 
 class FreeOnesAlbum(PhotoAlbum):
-    def json_serial(self,obj):
-        """JSON serializer for objects not serializable by default json code"""
+    base_url = 'https://www.freeones.com'
+    slug = ''
+    target = ''
 
-        if isinstance(obj, (datetime, date)):
-            return obj.isoformat()
-        raise TypeError ("Type %s not serializable" % type(obj))
-
-    base_url = "https://www.freeones.com"
-    slug = ""
-    target = ""
-
-    def __init__(self, slug=None, title="", target=None):
+    def __init__(self, slug=None, title='', target=None):
         super().__init__()
 
         self.slug = slug
@@ -36,24 +30,24 @@ class FreeOnesAlbum(PhotoAlbum):
 
     def load(self):
         page = requests.get(self.url)
-        soup = BeautifulSoup(page.content, "html.parser")
+        soup = BeautifulSoup(page.content, 'html.parser')
 
         # Metadata
-        date_box = soup.find("div", class_="uploaded-date")
+        date_box = soup.find('div', class_='uploaded-date')
         if date_box:
             date = date_box.text
             if date:
-                self.metadata['upload_date'] = datetime.strptime(date, "on %B %d, %Y")
-        cast_boxes = soup.findAll("div", class_="cast")
+                self.metadata['upload_date'] = datetime.strptime(date, 'on %B %d, %Y')
+        cast_boxes = soup.find_all('div', class_='cast')
         if cast_boxes:
             for box in cast_boxes:
-                actor = box.find("a")
+                actor = box.find('a')
                 if actor:
                     self.metadata['performers'].append((actor.text.strip(), actor['href'][:-4].strip('/')))
 
         # Pictures
         self.pictures = []
-        picture_links = soup.find_all("a", class_="gallery__flex__link", attrs={"data-type": "photo"})
+        picture_links = soup.find_all('a', class_='gallery__flex__link', attrs={'data-type': 'photo'})
         for link in picture_links:
             self.pictures.append(link['href'])
         self.loaded = True
@@ -75,8 +69,8 @@ class FreeOnesAlbum(PhotoAlbum):
             makedirs(base_path, exist_ok=True)
             json_path = album_path + '.json'
             if not path.exists(json_path):
-                with open(json_path,'w') as fh:
-                    fh.write(json.dumps(self.metadata,default=self.json_serial))
+                with open(json_path, 'w') as fh:
+                    fh.write(json.dumps(self.metadata, default=json_serial))
                     fh.write("\n")
                 logging.debug(f"Metadata downloaded ({json_path})")
         if download:
@@ -102,8 +96,7 @@ class FreeOnesAlbum(PhotoAlbum):
         # Get URL of next picture
         picture_url = self.pictures.pop(0)
 
-        # Download if requested
-        #if download:
+        # Download file/metadata as requested
         self.download(picture_url, download=download, metadata=metadata)
 
         # Return next photo

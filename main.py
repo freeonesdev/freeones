@@ -1,23 +1,23 @@
 import argparse
 import logging
-from scrapers.freeones.site import FreeOnes
+from babescrapers.freeones.site import FreeOnes
 
 
 if __name__ == '__main__':
-    write_metadata = True
-    write_media = True
-    list_pictures = True
-    list_videos = True
+    write_bio = False
+    write_media = False
+    list_pictures = False
+    list_videos = False
 
     # Process command line arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument("site", help="Site to scrape data from")
-    parser.add_argument("--target", help="Target identifier (eg. URL slug) to retrieve info from")
-    parser.add_argument("--no-metadata", help="Don't fetch biography or album/video json", action="store_true")
-    parser.add_argument("--no-album", help="Don't look for photo galleries", action="store_true")
-    parser.add_argument("--no-video", help="Don't look for videos", action="store_true")
-    parser.add_argument("--no-download", help="Don't download photos/videos", action="store_true")
-    parser.add_argument("--log", help="Set log level (error|warning|info|debug)")
+    parser.add_argument('site', help='Site to scrape data from')
+    parser.add_argument('--target', help='Target identifier (eg. URL slug) to retrieve info from')
+    parser.add_argument('--bio', help='Fetch biography', action='store_true')
+    parser.add_argument('--album', help='Look for photo galleries', action='store_true')
+    parser.add_argument('--video', help='Look for videos', action='store_true')
+    parser.add_argument('--download', help='Download photos/videos', action='store_true')
+    parser.add_argument('--log', help='Set log level (error|warning|info|debug)')
     args = parser.parse_args()
 
     if args.log is not None:
@@ -31,46 +31,46 @@ if __name__ == '__main__':
         logging.getLogger().addHandler(fh)
 
     if args.target:
-        write_metadata = not args.no_metadata
-        write_media = not args.no_download
-        list_pictures = not args.no_album
-        list_videos = not args.no_video
+        write_bio = args.bio
+        write_media = args.download
+        list_pictures = args.album
+        list_videos = args.video
 
-        if args.site == "freeones":
+        if args.site == 'freeones':
             # Scrape freeones.com, write logs
-            f = FreeOnes(write_metadata)
+            f = FreeOnes(write_bio)
 
             # Select babe
             f.select_target(args.target)
 
             # Biography
-
             bio = f.bio()
 
             # Photo albums
             if list_pictures:
-                logging.info("Albums")
+                logging.info('Albums')
                 while (a := f.next_album()) is not None:
                     logging.debug(a.meta())
                     ps = 0
-                    while (p := a.next_photo(download=write_media,metadata=write_metadata)) is not None:
+                    while (p := a.next_photo(download=write_media)) is not None:
                         ps += 1
                     logging.info(f"Album had {ps} photos")
 
             # Videos
             if list_videos:
-                logging.info("Videos")
+                logging.info('Videos')
                 while (v := f.next_video()) is not None:
                     logging.debug(v.meta())
-                    v.download(download=write_media,metadata=write_metadata)
+                    if write_media:
+                        v.download()
 
-        elif args.site == "warashi":
-            logging.warning("Not implemented yet")
+        elif args.site == 'warashi':
+            logging.warning('Not implemented yet')
         else:
             logging.warning(f"Unknown site: {args.site}")
 
     else:
-        logging.info("No target set, list 1st page")
+        logging.info('No target set, list 1st page')
         # Scrape freeones.com, write logs
         f = FreeOnes()
 
